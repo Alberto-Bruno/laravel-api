@@ -33,7 +33,15 @@ class ProjectController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $project = Project::with('technologies', 'type')->find($id);
+        if (!$project) return response(null, 404);
+
+
+        // managing images reception: if project has an image, reassign image path value as complete path
+        if ($project->image) $project->image = url('storage/' . $project->image);
+
+
+        return response()->json($project);
     }
 
     /**
