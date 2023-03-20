@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use Carbon\Carbon;
 use App\Models\Project;
 use App\Models\Type;
 use App\Models\Technology;
@@ -59,18 +60,18 @@ class ProjectController extends Controller
 
         $data = $request->all();
         $data['slug'] = Str::slug($data['title'], '-');
-        
+
         $project = new Project();
-        
+
         $project->fill($data);
-        
+
         // Storing image and creating its path
         if ($request->hasFile('image')) $project->image = Storage::put('upload', $data['image']);
-        
+
         $project->save();
 
         // make a relation between project and technology
-        if(Arr::exists($data, 'technologies')) $project->technologies()->attach($data['technologies']);
+        if (Arr::exists($data, 'technologies')) $project->technologies()->attach($data['technologies']);
 
         return to_route('admin.projects.show', $project->id);
     }
@@ -80,7 +81,10 @@ class ProjectController extends Controller
      */
     public function show(Project $project)
     {
-        return view('admin.projects.show', compact('project'));
+        $created_at = Carbon::create($project->created_at)->format('d/m/Y');
+        $updated_at = Carbon::create($project->updated_at)->format('d/m/Y');
+
+        return view('admin.projects.show', compact('project', 'created_at', 'updated_at'));
     }
 
     /**
@@ -101,7 +105,7 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         $request->validate([
-            'title' => ['required','string',Rule::unique('projects')->ignore($project->id),'min:5','max:50'],
+            'title' => ['required', 'string', Rule::unique('projects')->ignore($project->id), 'min:5', 'max:50'],
             'type_id' => 'nullable|exists:types,id',
             'content' => 'required|string',
             'image' => 'required|image|mimes:jpg,jpeg,png',
@@ -117,22 +121,22 @@ class ProjectController extends Controller
             'image.mimes' => 'Accepted extensions are: jpg, jpeg, png',
             'technologies' => 'Selected a not valid value'
         ]);
-        
+
         $data = $request->all();
         $data['slug'] = Str::slug($data['title'], '-');
-        
+
         $project->fill($data);
-        
-        if ($request->hasFile('image')){
-            if($project->image) Storage::delete($project->image);
+
+        if ($request->hasFile('image')) {
+            if ($project->image) Storage::delete($project->image);
             $project->image = Storage::put('upload', $data['image']);
-        } 
-        
+        }
+
         $project->save();
 
         // Assign the technologies
-        if(Arr::exists($data, 'technologies')) $project->technologies()->sync($data['technologies']);
-        else if(count($project->technologies)) $project->technologies()->detach();
+        if (Arr::exists($data, 'technologies')) $project->technologies()->sync($data['technologies']);
+        else if (count($project->technologies)) $project->technologies()->detach();
 
         return to_route('admin.projects.show', $project->id);
     }
@@ -143,7 +147,7 @@ class ProjectController extends Controller
     public function destroy(Project $project)
     {
 
-        if($project->image) Storage::delete($project->image);
+        if ($project->image) Storage::delete($project->image);
 
         $project->delete();
         return to_route('admin.projects.index');
